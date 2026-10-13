@@ -30,7 +30,7 @@ The project is organized **by feature**. This structure is enforced; do not crea
 
 ```
 src/
-├── main.tsx                 # entry point: mounts <App />, nothing else
+├── main.tsx                 # entry point: initTheme() + mounts <App />, nothing else
 ├── app/
 │   ├── styles/
 │   │   └── globals.css      # global styles, CSS reset, design tokens
@@ -169,6 +169,13 @@ We use **React Router in data mode** (`createBrowserRouter` + `RouterProvider`).
 - Style with **Tailwind utility classes**. Use semantic theme tokens (`bg-background`, `text-muted-foreground`, `bg-primary`), never raw palette colors (`bg-blue-500`) or manual `dark:` color overrides.
 - Global styles and design tokens (shadcn CSS variables) live only in `src/app/styles/globals.css`, imported once from `app.tsx`.
 - Merge conditional classes with `cn()` from `@/features/common/utils/cn/cn`.
+
+### Dark mode
+
+- Themes are `'light' | 'dark' | 'system'` (default `system`), persisted in `localStorage` under `theme`. Dark mode is the `.dark` class on `<html>`, which switches the shadcn CSS variables.
+- Read or change the theme in components with `useTheme()` from `@/features/common/hooks/use-theme/use-theme` (`{ theme, setTheme }`). Never toggle the `.dark` class or touch the `theme` storage key directly.
+- The theme logic lives in `@/features/common/utils/theme/theme`; `initTheme()` is called once in `main.tsx`.
+- Components must work in both themes: use semantic tokens so they adapt automatically.
 
 ## UI components (shadcn/ui)
 
