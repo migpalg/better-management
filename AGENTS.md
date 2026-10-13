@@ -9,6 +9,7 @@ Guidance for AI coding agents (and humans) working in this repository. These rul
 - **oxlint** for linting
 - **pnpm** as package manager — never use `npm` or `yarn`
 - **Vitest** + **React Testing Library** (`@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`) for tests
+- **Tailwind CSS v4** + **shadcn/ui** on **Base UI** primitives (`@base-ui/react`), icons from `lucide-react`
 
 ## Commands
 
@@ -38,6 +39,7 @@ src/
     ├── common/              # code shared by two or more features
     │   ├── utils/
     │   ├── components/
+    │   │   └── ui/          # shadcn-generated components (CLI-managed)
     │   └── layout/
     └── <feature-name>/      # one folder per feature, e.g. `invoices`, `auth`
         ├── hooks/
@@ -164,8 +166,21 @@ We use **React Router in data mode** (`createBrowserRouter` + `RouterProvider`).
 
 ## Styling
 
-- Global styles, resets and design tokens (CSS custom properties) live only in `src/app/styles/globals.css`, imported once from `app.tsx` or `main.tsx`.
-- Component styles live in the component's folder and are scoped to it (e.g. CSS Modules: `button.module.css`).
+- Style with **Tailwind utility classes**. Use semantic theme tokens (`bg-background`, `text-muted-foreground`, `bg-primary`), never raw palette colors (`bg-blue-500`) or manual `dark:` color overrides.
+- Global styles and design tokens (shadcn CSS variables) live only in `src/app/styles/globals.css`, imported once from `app.tsx`.
+- Merge conditional classes with `cn()` from `@/features/common/utils/cn/cn`.
+
+## UI components (shadcn/ui)
+
+- shadcn is configured in `components.json` with the `base-nova` style on **Base UI** (not Radix). Base UI uses the `render` prop for custom triggers, not `asChild`.
+- Add components with the CLI only: `pnpm dlx shadcn@latest add <component>`. They are written to `src/features/common/components/ui/`.
+- **Use an existing shadcn component before writing custom markup** (`Button`, `Card`, `Dialog`, `Field`, `Badge`, `Alert`, `Skeleton`, `Separator`, …), and prefer built-in variants (`variant`, `size`) over custom classes.
+- **Exception to the folder/test rules:** `components/ui/` holds CLI-generated files in shadcn's flat layout (`ui/button.tsx`). Do not wrap them in folders and do not add tests for unmodified generated files. If you customize a generated component's behavior, add a spec for it.
+- Do not edit generated components for one-off needs; compose them in your own component (one unit per folder, with tests) instead.
+
+## Imports
+
+- Use the `@/` alias (maps to `src/`) for imports across folders, e.g. `@/features/common/components/ui/button`. Use relative imports only within the same unit folder.
 
 ## Checklist for every change
 
