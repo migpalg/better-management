@@ -1,5 +1,7 @@
+import { RouterProvider } from 'react-router/dom'
+import { router } from './routes/routes.tsx'
 import './styles/globals.css'
 
 export function App() {
-  return <h1>better-management</h1>
+  return <RouterProvider router={router} />
 }

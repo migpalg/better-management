@@ -131,7 +131,29 @@ Rules:
 - **Keys:** use stable, unique ids as list keys, never array indexes for dynamic lists.
 - **Props:** type every component's props explicitly; prefer composition (`children`) over deep prop drilling; use context for truly cross-cutting state, not as a general store.
 - **Accessibility:** use semantic HTML (`button`, `nav`, `main`, `label`), give every interactive element an accessible name, and make everything keyboard-operable. Accessible markup also makes components testable with Testing Library.
-- **Side-effect-free modules:** no logic runs at import time.
+- **Side-effect-free modules:** no logic runs at import time. The only exception is the router instance in `src/app/routes/routes.tsx` (see [Routing](#routing)).
+
+## Routing
+
+We use **React Router in data mode** (`createBrowserRouter` + `RouterProvider`).
+
+- All routes are defined in `src/app/routes/routes.tsx`, which exports both the `routes` array and the `router` instance created from it:
+
+  ```tsx
+  export const routes: RouteObject[] = [
+    {
+      path: '/',
+      Component: HomeScreen,
+    },
+  ]
+
+  export const router = createBrowserRouter(routes)
+  ```
+
+- Use the route's **`Component`** property (not `element`) to render screens, layouts and error boundaries (`Component`, `ErrorBoundary`).
+- Route components are **screens** from `features/<name>/screens/` (or layouts from `layouts/`); keep routing config out of features.
+- `app.tsx` renders the exported router with `RouterProvider` from `react-router/dom`.
+- Test routes with `createMemoryRouter(routes, { initialEntries: [path] })`, never with the exported browser `router`.
 
 ## TypeScript
 
