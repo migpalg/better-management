@@ -421,7 +421,7 @@ export function useProjectTasks(projectId: string) {
 }
 ```
 
-The query key names the resource and the parameters that identify the result. A query passes `{ signal }` from `queryFn`. A cancellable mutation creates an `AbortController` and passes `{ signal: controller.signal }` to the service. The hook aborts that controller when the call should stop, and invalidates the related queries after the mutation succeeds. Any other caller that needs to cancel creates an `AbortController` and passes `{ signal }`. The service does not invalidate.
+The query key names the resource and the parameters that identify the result. A query passes `{ signal }` from `queryFn`. A TanStack mutation has no `AbortSignal`. After the mutation succeeds, the hook invalidates the related queries. Any other caller that needs to cancel creates an `AbortController` and passes `{ signal }`. The service does not invalidate.
 
 ## Browser storage
 
