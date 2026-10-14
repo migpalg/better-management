@@ -77,7 +77,7 @@ Only create the subfolders a feature actually needs. If a feature needs a new ki
 
 ## One unit per folder, test alongside
 
-Every unit of code (component, hook, util, screen, layout, model, service) lives in **its own folder**, named after the unit, together with its test file:
+A unit that has a spec or another associated file lives in **its own folder**, named after the unit, together with those files. A file that has no spec and no associated file sits directly in its parent folder.
 
 ```
 features/common/components/
@@ -98,7 +98,7 @@ features/common/utils/
 
 Rules:
 
-- The folder name, the source file name and the test file name share the same base name.
+- When a unit has a folder, the folder name, the source file name and the test file name share the same base name.
 - Test files use the `.spec.ts` / `.spec.tsx` suffix (not `.test.*`) and sit **next to** the file they test — no `__tests__/` folders.
 - Files only used by that unit (styles, sub-components, constants) may live in the same folder, e.g. `button/button.module.css`. A sub-component that has its own logic gets its own test.
 - Do not create `index.ts` barrel files; import from the file directly (`.../button/button`).
@@ -263,25 +263,26 @@ Cross-cutting codes:
 The UI does not fetch. A feature hook owns the TanStack Query call and talks to a service port. The service has no React and no TanStack Query. `app/create-services/` is the composition root: it constructs the graph with `new` and is the only place that chooses concrete adapters. There is no dependency-injection container.
 
 ```
-src/features/common/service-options/service-options.ts
-src/features/common/session/session.ts
+src/features/common/service-options.ts
+src/features/common/storage/storage.ts
+src/features/common/storage/local-storage.ts
 src/features/common/http/http-client/http-client.ts
-src/features/common/http/fetch-http-client/fetch-http-client.ts
+src/features/common/http/http-client/fetch-http-client.ts
 
 src/features/auth/browser-session/browser-session.ts
 src/features/auth/services/auth-service/auth-service.ts
-src/features/auth/services/http-auth-service/http-auth-service.ts
+src/features/auth/services/auth-service/http-auth-service.ts
 
 src/features/tasks/models/task/task.ts
 src/features/tasks/services/tasks-service/tasks-service.ts
-src/features/tasks/services/http-tasks-service/http-tasks-service.ts
+src/features/tasks/services/tasks-service/http-tasks-service.ts
 src/features/tasks/services/tasks-service-provider/tasks-service-provider.tsx
 src/features/tasks/hooks/use-project-tasks/use-project-tasks.ts
 
 src/app/create-services/create-services.ts
 ```
 
-A port file exports a type and has no spec. Every adapter, parser, provider, hook, and `createServices` has a sibling spec.
+A port and the adapter that implements it share the port's folder. The port file exports a type and has no spec. The adapter keeps its own file name and a sibling spec (`http-client/fetch-http-client.ts`). A second adapter gets its own folder and imports the port. Every parser, provider, hook, and `createServices` has a sibling spec.
 
 ### Models
 
@@ -306,7 +307,7 @@ The parser's spec covers a valid payload and a payload it must reject. When the 
 
 ### Services
 
-The port is the interface the hook depends on. The HTTP class is the adapter. The last parameter of every service method is `options`. `ServiceOptions` lives in `features/common/service-options/service-options.ts`, exports only that type, and has no spec.
+The port is the interface the hook depends on. The HTTP class is the adapter. The last parameter of every service method is `options`. `ServiceOptions` lives in `features/common/service-options.ts`. It exports only that type, so it has no spec and no folder of its own.
 
 ```ts
 export type ServiceOptions = {
@@ -348,7 +349,7 @@ The feature exposes the already-built instance through its own provider and hook
 
 ### HTTP and authentication
 
-`Session` and `HttpClient` live in `features/common`. `BrowserSession` and `HttpAuthService` live in `features/auth`. Resource services never see a token, a storage key, or the base URL.
+`HttpClient` lives in `features/common`. `BrowserSession` and `HttpAuthService` live in `features/auth`. Resource services never see a token, a storage key, or the base URL.
 
 ```ts
 export interface HttpClient {
@@ -370,28 +371,25 @@ The request type has no headers field. Paths are relative (`/projects/${projectI
 
 Refresh is single-flight inside `HttpAuthService`, so parallel `401`s share one refresh call. That refresh uses its own `AbortController`. Cancelling one query does not cancel a refresh another query is waiting on. The retried request still uses the caller's signal.
 
-`BrowserSession` only reads and writes storage. `HttpAuthService` writes tokens into the session after login and refresh. Resource services receive the authenticated client and do not receive `Session`.
+`BrowserSession` receives a `Storage` and reads and writes tokens through it. `LocalStorage` is the adapter that touches `localStorage`. `HttpAuthService` takes a `BrowserSession` and writes tokens into it after login and refresh. Resource services receive the authenticated client and do not receive the session.
 
-A non-HTTP transport follows the same split. Its adapter receives the `Session` port and reads `getAccessToken()` when it opens the connection. The feature service receives that adapter already configured.
+A non-HTTP transport follows the same split. The composition root passes the session, and that transport reads `getAccessToken()` when it opens the connection. The feature service receives the transport already configured.
 
 ### Composition root
 
 ```ts
 export function createServices(): Services {
-  const session = new BrowserSession()
+  const session = new BrowserSession(new LocalStorage())
   const publicHttp = new FetchHttpClient({ baseUrl })
   const auth = new HttpAuthService(publicHttp, session)
-  const authedHttp = new FetchHttpClient({
+  const http = new FetchHttpClient({
     baseUrl,
     getAccessToken: () => session.getAccessToken(),
     refresh: (signal) => auth.refresh({ signal }),
   })
 
-  return {
-    session,
-    auth,
-    tasks: new HttpTasksService(authedHttp),
-  }
+  // Resource services are constructed here and added to the return value.
+  return { session, auth, http }
 }
 ```
 
@@ -461,7 +459,7 @@ We use **[Conventional Commits](https://www.conventionalcommits.org/)**. Every c
 
 ## Checklist for every change
 
-1. Code is placed in the correct feature folder, one unit per folder.
+1. Code is placed in the correct feature folder. A unit with a spec or associated files has its own folder. A file with neither sits directly in its parent folder.
 2. No cross-feature imports; shared code is in `features/common/`.
 3. Files and folders follow the naming conventions.
 4. Every new or changed unit has a sibling `.spec` file covering its behavior.
