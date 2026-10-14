@@ -31,9 +31,11 @@ describe('LocalStorage', () => {
     vi.spyOn(globalThis.Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('denied')
     })
-    vi.spyOn(globalThis.Storage.prototype, 'removeItem').mockImplementation(() => {
-      throw new Error('denied')
-    })
+    vi.spyOn(globalThis.Storage.prototype, 'removeItem').mockImplementation(
+      () => {
+        throw new Error('denied')
+      },
+    )
     const storage = new LocalStorage()
 
     expect(() => storage.set('theme', 'dark')).not.toThrow()

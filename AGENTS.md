@@ -55,18 +55,18 @@ src/
 
 ### What goes where
 
-| Folder | Contents |
-| --- | --- |
-| `app/` | App-wide wiring only: root component, providers, routing, global styles, and the service composition root. No business logic. |
-| `features/common/utils/` | Pure, framework-agnostic helpers used by multiple features. |
-| `features/common/components/` | Generic, reusable UI (buttons, inputs, modals). No feature-specific logic. |
-| `features/common/layout/` | Layout shells shared across features (page shell, header, sidebar). |
-| `features/<name>/hooks/` | Custom hooks owned by the feature (queries, state, side effects). |
-| `features/<name>/screens/` | Top-level route/page components. Compose components and hooks; keep them thin. |
-| `features/<name>/components/` | UI components used only inside this feature. |
-| `features/<name>/layouts/` | Layouts used only inside this feature. |
-| `features/<name>/models/` | Types the feature returns, and the parsers that produce them from `unknown`. |
-| `features/<name>/services/` | Ports and adapters owned by this feature. |
+| Folder                        | Contents                                                                                                                      |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `app/`                        | App-wide wiring only: root component, providers, routing, global styles, and the service composition root. No business logic. |
+| `features/common/utils/`      | Pure, framework-agnostic helpers used by multiple features.                                                                   |
+| `features/common/components/` | Generic, reusable UI (buttons, inputs, modals). No feature-specific logic.                                                    |
+| `features/common/layout/`     | Layout shells shared across features (page shell, header, sidebar).                                                           |
+| `features/<name>/hooks/`      | Custom hooks owned by the feature (queries, state, side effects).                                                             |
+| `features/<name>/screens/`    | Top-level route/page components. Compose components and hooks; keep them thin.                                                |
+| `features/<name>/components/` | UI components used only inside this feature.                                                                                  |
+| `features/<name>/layouts/`    | Layouts used only inside this feature.                                                                                        |
+| `features/<name>/models/`     | Types the feature returns, and the parsers that produce them from `unknown`.                                                  |
+| `features/<name>/services/`   | Ports and adapters owned by this feature.                                                                                     |
 
 Only create the subfolders a feature actually needs. If a feature needs a new kind of module (e.g. `utils/`, `types/`, `api/`), add it inside the feature folder, never at the top level of `src/`.
 
@@ -240,16 +240,16 @@ export class AppError extends Error {
 
 Cross-cutting codes:
 
-| Code | Use when |
-| --- | --- |
-| `auth.unauthenticated` | The caller has no valid session. |
-| `auth.forbidden` | The caller is authenticated and is not allowed to do this. |
-| `common.notFound` | The target does not exist. |
-| `common.validation` | The input is unacceptable. |
-| `common.network` | The operation could not reach its dependency. |
-| `common.unavailable` | The dependency cannot complete the operation right now. |
-| `common.invalidResponse` | Data came back in an unexpected shape. |
-| `common.unknown` | The failure has no matching code. |
+| Code                     | Use when                                                   |
+| ------------------------ | ---------------------------------------------------------- |
+| `auth.unauthenticated`   | The caller has no valid session.                           |
+| `auth.forbidden`         | The caller is authenticated and is not allowed to do this. |
+| `common.notFound`        | The target does not exist.                                 |
+| `common.validation`      | The input is unacceptable.                                 |
+| `common.network`         | The operation could not reach its dependency.              |
+| `common.unavailable`     | The dependency cannot complete the operation right now.    |
+| `common.invalidResponse` | Data came back in an unexpected shape.                     |
+| `common.unknown`         | The failure has no matching code.                          |
 
 `params` carries interpolation values only (`{ name: taskTitle }`). It does not carry sentences. The keys match the placeholders in the i18next message, for example `Task {{name}} does not exist.`
 
@@ -317,7 +317,10 @@ export type ServiceOptions = {
 }
 
 export interface TasksService {
-  getTasksByProjectId(projectId: string, options: ServiceOptions): Promise<readonly Task[]>
+  getTasksByProjectId(
+    projectId: string,
+    options: ServiceOptions,
+  ): Promise<readonly Task[]>
   createTask(input: CreateTaskInput, options: ServiceOptions): Promise<Task>
 }
 
@@ -328,7 +331,10 @@ export class HttpTasksService implements TasksService {
     this.http = http
   }
 
-  async getTasksByProjectId(projectId: string, options: ServiceOptions): Promise<readonly Task[]> {
+  async getTasksByProjectId(
+    projectId: string,
+    options: ServiceOptions,
+  ): Promise<readonly Task[]> {
     const body = await this.http.request({
       method: 'GET',
       path: `/projects/${projectId}/tasks`,
@@ -409,7 +415,8 @@ export function useProjectTasks(projectId: string) {
 
   return useQuery({
     queryKey: ['tasks', projectId],
-    queryFn: ({ signal }) => tasksService.getTasksByProjectId(projectId, { signal }),
+    queryFn: ({ signal }) =>
+      tasksService.getTasksByProjectId(projectId, { signal }),
   })
 }
 ```

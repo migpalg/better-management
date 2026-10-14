@@ -15,7 +15,10 @@ describe('createServices', () => {
       fetch: fetchMock,
     })
 
-    services.session.setTokens({ accessToken: 'access', refreshToken: 'refresh' })
+    services.session.setTokens({
+      accessToken: 'access',
+      refreshToken: 'refresh',
+    })
 
     expect(services.session.getAccessToken()).toBe('access')
     await expect(
