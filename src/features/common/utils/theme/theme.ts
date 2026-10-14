@@ -1,5 +1,8 @@
+import { LocalStorage } from '@/features/common/key-value-storage/local-storage/local-storage.ts'
+
 export type Theme = 'light' | 'dark' | 'system'
 
+const storage = new LocalStorage()
 const STORAGE_KEY = 'theme'
 const DARK_QUERY = '(prefers-color-scheme: dark)'
 
@@ -10,12 +13,8 @@ function isTheme(value: unknown): value is Theme {
 }
 
 export function getTheme(): Theme {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    return isTheme(stored) ? stored : 'system'
-  } catch {
-    return 'system'
-  }
+  const stored = storage.get(STORAGE_KEY)
+  return isTheme(stored) ? stored : 'system'
 }
 
 export function resolveTheme(theme: Theme): 'light' | 'dark' {
@@ -31,11 +30,7 @@ function applyTheme(theme: Theme) {
 }
 
 export function setTheme(theme: Theme) {
-  try {
-    localStorage.setItem(STORAGE_KEY, theme)
-  } catch {
-    // Storage can be unavailable (private mode); the theme still applies.
-  }
+  storage.set(STORAGE_KEY, theme)
   applyTheme(theme)
   listeners.forEach((listener) => listener())
 }

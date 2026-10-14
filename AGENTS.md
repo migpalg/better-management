@@ -6,7 +6,7 @@ Guidance for AI coding agents (and humans) working in this repository. These rul
 
 - **React 19** + **TypeScript** (strict bundler mode, `verbatimModuleSyntax`)
 - **Vite** for dev server and build
-- **oxlint** for linting
+- **oxlint** for linting, **oxfmt** for formatting (config in `.oxfmtrc.json`)
 - **pnpm** as package manager — never use `npm` or `yarn`
 - **Vitest** + **React Testing Library** (`@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`) for tests
 - **Tailwind CSS v4** + **shadcn/ui** on **Base UI** primitives (`@base-ui/react`), icons from `lucide-react`
@@ -18,11 +18,13 @@ pnpm install      # install dependencies
 pnpm dev          # start dev server
 pnpm build        # type-check (tsc -b) and build
 pnpm lint         # run oxlint
+pnpm format       # format the project with oxfmt
+pnpm format:check # check formatting without writing
 pnpm test         # run the test suite once (vitest)
 pnpm test:watch   # run tests in watch mode
 ```
 
-Before considering any task done, run `pnpm lint`, `pnpm test` and `pnpm build`. All three must pass.
+Before considering any task done, run `pnpm format`, then `pnpm lint`, `pnpm test` and `pnpm build`. All three must pass.
 
 ## Folder structure
 
@@ -46,21 +48,25 @@ src/
         ├── hooks/
         ├── screens/
         ├── components/
-        └── layouts/
+        ├── layouts/
+        ├── models/
+        └── services/
 ```
 
 ### What goes where
 
-| Folder | Contents |
-| --- | --- |
-| `app/` | App-wide wiring only: root component, providers, routing, global styles. No business logic. |
-| `features/common/utils/` | Pure, framework-agnostic helpers used by multiple features. |
-| `features/common/components/` | Generic, reusable UI (buttons, inputs, modals). No feature-specific logic. |
-| `features/common/layout/` | Layout shells shared across features (page shell, header, sidebar). |
-| `features/<name>/hooks/` | Custom hooks owned by the feature (data fetching, state, side effects). |
-| `features/<name>/screens/` | Top-level route/page components. Compose components and hooks; keep them thin. |
-| `features/<name>/components/` | UI components used only inside this feature. |
-| `features/<name>/layouts/` | Layouts used only inside this feature. |
+| Folder                        | Contents                                                                                                                      |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `app/`                        | App-wide wiring only: root component, providers, routing, global styles, and the service composition root. No business logic. |
+| `features/common/utils/`      | Pure, framework-agnostic helpers used by multiple features.                                                                   |
+| `features/common/components/` | Generic, reusable UI (buttons, inputs, modals). No feature-specific logic.                                                    |
+| `features/common/layout/`     | Layout shells shared across features (page shell, header, sidebar).                                                           |
+| `features/<name>/hooks/`      | Custom hooks owned by the feature (queries, state, side effects).                                                             |
+| `features/<name>/screens/`    | Top-level route/page components. Compose components and hooks; keep them thin.                                                |
+| `features/<name>/components/` | UI components used only inside this feature.                                                                                  |
+| `features/<name>/layouts/`    | Layouts used only inside this feature.                                                                                        |
+| `features/<name>/models/`     | Types the feature returns, and the parsers that produce them from `unknown`.                                                  |
+| `features/<name>/services/`   | Ports and adapters owned by this feature.                                                                                     |
 
 Only create the subfolders a feature actually needs. If a feature needs a new kind of module (e.g. `utils/`, `types/`, `api/`), add it inside the feature folder, never at the top level of `src/`.
 
@@ -73,7 +79,7 @@ Only create the subfolders a feature actually needs. If a feature needs a new ki
 
 ## One unit per folder, test alongside
 
-Every unit of code (component, hook, util, screen, layout) lives in **its own folder**, named after the unit, together with its test file:
+A unit that has a spec or another associated file lives in **its own folder**, named after the unit, together with those files. A file that has no spec and no associated file sits directly in its parent folder.
 
 ```
 features/common/components/
@@ -94,7 +100,7 @@ features/common/utils/
 
 Rules:
 
-- The folder name, the source file name and the test file name share the same base name.
+- When a unit has a folder, the folder name, the source file name and the test file name share the same base name.
 - Test files use the `.spec.ts` / `.spec.tsx` suffix (not `.test.*`) and sit **next to** the file they test — no `__tests__/` folders.
 - Files only used by that unit (styles, sub-components, constants) may live in the same folder, e.g. `button/button.module.css`. A sub-component that has its own logic gets its own test.
 - Do not create `index.ts` barrel files; import from the file directly (`.../button/button`).
@@ -112,7 +118,7 @@ Rules:
 
 **Every testable piece of code must be tested.** A change that adds or modifies a component, hook, util, screen or layout without a corresponding test is incomplete.
 
-- Each source file has a sibling `.spec` file (see above). The only exemptions are files with no runtime behavior: type-only files (`*.types.ts`), `main.tsx`, route config (`src/app/routes.tsx`), and plain CSS.
+- Each source file has a sibling `.spec` file (see above). The only exemptions are files with no runtime behavior: type-only files (`*.types.ts`), a service or client port that only exports types, `main.tsx`, route config (`src/app/routes.tsx`), and plain CSS.
 - Test **behavior, not implementation**: query by role, label or text (`getByRole`, `getByLabelText`) as a user would; avoid `getByTestId` unless there is no accessible alternative; never assert on internal state or private functions.
 - Use `@testing-library/user-event` for interactions instead of `fireEvent`.
 - Test hooks with `renderHook` from `@testing-library/react`.
@@ -176,6 +182,256 @@ We use **React Router in data mode** (`createBrowserRouter` + `RouterProvider`).
 - Use `import type` for type-only imports (required by `verbatimModuleSyntax`).
 - Do not use TypeScript-only runtime syntax such as `enum` or parameter properties (`erasableSyntaxOnly` is on); use union types or `as const` objects instead.
 
+## App errors
+
+An expected failure is an `AppError`. The error exposes a `code`, and that code is the i18next translation key. Callers react to `code`. The component that presents the failure passes the key and `params` to i18next. `error.message` and text supplied by a remote system are not user-facing copy.
+
+The implementation lives in `features/common/errors/app-error/`:
+
+```
+features/common/errors/
+└── app-error/
+    ├── app-error.ts
+    └── app-error.spec.ts
+```
+
+`app-error.ts` exports `errorCodes`, the `ErrorCode` type, `AppError`, and `isAppError`.
+
+### Creating an error
+
+- Throw `AppError` for every expected failure (authentication, permissions, validation, not found, network, unavailable, invalid data, and feature-specific business rules). Do not throw a bare `Error`, a string, or a custom error class for these cases.
+- `error.message` is the code. Do not put a sentence in it, and do not call i18next at the throw site.
+- Set `cause` when wrapping an underlying failure.
+- A cancellation stays a cancellation. Do not wrap an abort error in `AppError`.
+- Add a code to `errorCodes` only when more than one feature can throw or react to it. A feature-only code lives in that feature (`taskErrorCodes.duplicateTitle` is `'tasks.duplicateTitle'`). Reuse a common code when the meaning is the same.
+- A small factory may set a fixed code (`authenticationError()`, `notEnoughPermissionsError()`). Callers still branch on `code`, not on the factory or on `instanceof` subclasses.
+
+```ts
+export const errorCodes = {
+  unauthenticated: 'auth.unauthenticated',
+  forbidden: 'auth.forbidden',
+  notFound: 'common.notFound',
+  validation: 'common.validation',
+  network: 'common.network',
+  unavailable: 'common.unavailable',
+  invalidResponse: 'common.invalidResponse',
+  unknown: 'common.unknown',
+} as const
+
+export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes]
+
+export class AppError extends Error {
+  readonly code: string
+  readonly params: Readonly<Record<string, string | number>>
+
+  constructor(
+    code: string,
+    params: Readonly<Record<string, string | number>> = {},
+    options?: { cause?: unknown },
+  ) {
+    super(code)
+    this.name = 'AppError'
+    this.code = code
+    this.params = params
+    this.cause = options?.cause
+  }
+}
+```
+
+Cross-cutting codes:
+
+| Code                     | Use when                                                   |
+| ------------------------ | ---------------------------------------------------------- |
+| `auth.unauthenticated`   | The caller has no valid session.                           |
+| `auth.forbidden`         | The caller is authenticated and is not allowed to do this. |
+| `common.notFound`        | The target does not exist.                                 |
+| `common.validation`      | The input is unacceptable.                                 |
+| `common.network`         | The operation could not reach its dependency.              |
+| `common.unavailable`     | The dependency cannot complete the operation right now.    |
+| `common.invalidResponse` | Data came back in an unexpected shape.                     |
+| `common.unknown`         | The failure has no matching code.                          |
+
+`params` carries interpolation values only (`{ name: taskTitle }`). It does not carry sentences. The keys match the placeholders in the i18next message, for example `Task {{name}} does not exist.`
+
+### Handling an error
+
+- Narrow with `isAppError` before reading `code`.
+- Decide what to do from `code`. Do not compare `error.message` to a sentence.
+- The component that needs the sentence passes `code` to i18next as the translation key and passes `params` as the interpolation values. That component chooses how the `t` call is written. Do not add a helper that translates an `AppError`.
+- Each code has one i18next message per supported locale. Messages for a shared code live with the common resources. Messages for a feature-only code live with that feature. Adding a code means adding that message, placeholders included, to every locale in the same change. A failure with no matching code uses the `common.unknown` key.
+
+## Data fetching
+
+The UI does not fetch. A feature hook owns the TanStack Query call and talks to a service port. The service has no React and no TanStack Query. `app/create-services/` is the composition root: it constructs the graph with `new` and is the only place that chooses concrete adapters. There is no dependency-injection container.
+
+```
+src/features/common/service-options.ts
+src/features/common/key-value-storage/key-value-storage.ts
+src/features/common/key-value-storage/local-storage/local-storage.ts
+src/features/common/http/http-client/http-client.ts
+src/features/common/http/http-client/fetch-http-client/fetch-http-client.ts
+
+src/features/auth/browser-session/browser-session.ts
+src/features/auth/services/auth-service/auth-service.ts
+src/features/auth/services/auth-service/http-auth-service/http-auth-service.ts
+
+src/features/tasks/models/task/task.ts
+src/features/tasks/services/tasks-service/tasks-service.ts
+src/features/tasks/services/tasks-service/http-tasks-service/http-tasks-service.ts
+src/features/tasks/services/tasks-service-provider/tasks-service-provider.tsx
+src/features/tasks/hooks/use-project-tasks/use-project-tasks.ts
+
+src/app/create-services/create-services.ts
+```
+
+A port and its adapters share the port's folder. The port file exports a type, has no spec, and sits directly in that folder. Every implementation of a port, including the first one and test fakes such as `MemoryStorage`, gets its own subfolder named after it, with its sibling spec (`http-client/fetch-http-client/fetch-http-client.ts`). The implementation imports the port through the `@/` alias. Every parser, provider, hook, and `createServices` has a sibling spec.
+
+### Models
+
+A service method returns a model from its own feature. The model unit exports the types and the parser that narrows `unknown` into them. Status fields are unions. Properties are `readonly`. An input whose shape differs from the model is a separate type in the same file.
+
+```ts
+export type TaskStatus = 'open' | 'done'
+
+export type Task = {
+  readonly id: string
+  readonly projectId: string
+  readonly title: string
+  readonly status: TaskStatus
+}
+
+export function parseTaskList(value: unknown): readonly Task[] {
+  // narrow `unknown`, then return Task[]
+}
+```
+
+The parser's spec covers a valid payload and a payload it must reject. When the wire shape differs from the model, the conversion stays inside the parser. Screens, hooks, and the port import the model. They do not describe a response inline. A model moves to `features/common/` when a second feature needs it.
+
+### Services
+
+The port is the interface the hook depends on. The HTTP class is the adapter. The last parameter of every service method is an optional `options`. `ServiceOptions` lives in `features/common/service-options.ts`. It exports only that type, so it has no spec and no folder of its own.
+
+```ts
+export type ServiceOptions = {
+  readonly signal?: AbortSignal
+}
+
+export interface TasksService {
+  getTasksByProjectId(
+    projectId: string,
+    options?: ServiceOptions,
+  ): Promise<readonly Task[]>
+  createTask(input: CreateTaskInput, options?: ServiceOptions): Promise<Task>
+}
+
+export class HttpTasksService implements TasksService {
+  private readonly http: HttpClient
+
+  constructor(http: HttpClient) {
+    this.http = http
+  }
+
+  async getTasksByProjectId(
+    projectId: string,
+    options?: ServiceOptions,
+  ): Promise<readonly Task[]> {
+    const body = await this.http.request({
+      method: 'GET',
+      path: `/projects/${projectId}/tasks`,
+      signal: options?.signal,
+    })
+    return parseTaskList(body)
+  }
+}
+```
+
+- `options` is optional and has no default, and `options.signal` is optional too. A caller that can cancel the call, such as a hook, passes `{ signal }`. Per-call settings belong on `options`, not as further positional parameters.
+- The method forwards `options?.signal` to the client and to any collaborator it calls for the same operation. The refresh request is the exception: the HTTP client calls `refresh()` without a signal, and the refresh HTTP call uses its own `AbortController`.
+- Collaborators arrive through the constructor. Assign them in the constructor body. The feature imports a port, never another feature's concrete class. A port used by a second feature moves to `features/common/`.
+- The adapter is the only caller of the parser. `HttpClient.request` returns `Promise<unknown>`.
+- Expected failures throw `AppError` (see [App errors](#app-errors)). The model parser throws `common.invalidResponse`. A service throws a feature code for a business rule. An aborted request stays an abort error.
+- A feature exports the class, not a singleton. Nothing in this graph runs at import time.
+- Test a service by constructing it with a fake collaborator. Cover a call with `{ signal }` and a call without `options`.
+
+The feature exposes the already-built instance through its own provider and hook (`TasksServiceProvider`, `useTasksService()`). `useTasksService()` throws when the provider is missing. A single global registry cannot be typed in `features/common/` (it would have to import features) and a feature cannot import one from `app/`.
+
+### HTTP and authentication
+
+`HttpClient` lives in `features/common`. `BrowserSession` and `HttpAuthService` live in `features/auth`. Resource services never see a token, a storage key, or the base URL.
+
+```ts
+export interface HttpClient {
+  request(request: {
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+    path: string
+    body?: unknown
+    signal?: AbortSignal
+  }): Promise<unknown>
+}
+```
+
+The request type has no headers field. Paths are relative (`/projects/${projectId}/tasks`). `FetchHttpClient` is the only code that sets `Authorization: Bearer <token>`.
+
+`createServices()` builds two clients from one session:
+
+- The anonymous client never sends a bearer token and never refreshes. Login and refresh go through it.
+- The authenticated client sends the bearer token on every request. A missing token throws `auth.unauthenticated` before `fetch`. A `401` refreshes once and retries the original request once. A `403` throws `auth.forbidden` and leaves the session in place. Other failed responses map to the cross-cutting codes in [App errors](#app-errors).
+
+Refresh is single-flight inside `HttpAuthService`, so parallel `401`s share one refresh call. That refresh uses its own `AbortController`. Cancelling one query does not cancel a refresh another query is waiting on. The retried request still uses the caller's signal.
+
+`BrowserSession` receives a `KeyValueStorage` and reads and writes tokens through it. `LocalStorage` is the adapter that touches `localStorage`. `HttpAuthService` takes a `BrowserSession` and writes tokens into it after login and refresh. Resource services receive the authenticated client and do not receive the session.
+
+A non-HTTP transport follows the same split. The composition root passes the session, and that transport reads `getAccessToken()` when it opens the connection. The feature service receives the transport already configured.
+
+### Composition root
+
+```ts
+export function createServices(): Services {
+  const session = new BrowserSession(new LocalStorage())
+  const publicHttp = new FetchHttpClient({ baseUrl })
+  const auth = new HttpAuthService(publicHttp, session)
+  const http = new FetchHttpClient({
+    baseUrl,
+    getAccessToken: () => session.getAccessToken(),
+    refresh: () => auth.refresh(),
+  })
+
+  // Resource services are constructed here and added to the return value.
+  return { session, auth, http }
+}
+```
+
+`App` holds one graph for the lifetime of the page with `useState(createServices)` and passes each service into its provider. The same `session` instance is provided to screens that need to know whether someone is signed in. Data hooks do not read the session. `QueryClientProvider` is mounted here. Services do not import the query client.
+
+The base URL is read in `createServices()` (`import.meta.env.VITE_API_URL`) and passed into the clients. Pass `fetch` into the clients from tests so specs do not touch the network.
+
+### Hooks
+
+The hook owns the query key, the cache, and cancellation. The screen calls the hook.
+
+```ts
+export function useProjectTasks(projectId: string) {
+  const tasksService = useTasksService()
+
+  return useQuery({
+    queryKey: ['tasks', projectId],
+    queryFn: ({ signal }) =>
+      tasksService.getTasksByProjectId(projectId, { signal }),
+  })
+}
+```
+
+The query key names the resource and the parameters that identify the result. A query passes `{ signal }` from `queryFn`. A mutation passes `{ signal }` from the mutation context, then invalidates the related queries. Any other caller that needs to cancel creates an `AbortController` and passes `{ signal }`. The service does not invalidate.
+
+## Browser storage
+
+Values that persist in the browser go through the `KeyValueStorage` port in `features/common/key-value-storage/key-value-storage.ts`.
+
+- Only `LocalStorage` (`features/common/key-value-storage/local-storage/`) touches `localStorage`. No other code calls `localStorage` or `sessionStorage` directly.
+- Code that persists values depends on `KeyValueStorage` and receives an instance through its constructor (`new BrowserSession(new LocalStorage())`). A module-level util with no constructor, such as `theme.ts`, creates its own `LocalStorage`.
+- A spec for code that receives a `KeyValueStorage` passes a `MemoryStorage` (`features/common/key-value-storage/memory-storage/`). Specs that cannot inject storage, because the code under test creates its own `LocalStorage` (`LocalStorage` itself, `theme.ts` and `useTheme`, `createServices`), use jsdom's `localStorage` and clear it in `beforeEach`.
+- A storage key belongs to the module that owns it: `theme` belongs to `theme.ts`, and the token keys belong to `BrowserSession`. Other code reads or writes that value only through the owning module.
+
 ## Styling
 
 - Style with **Tailwind utility classes**. Use semantic theme tokens (`bg-background`, `text-muted-foreground`, `bg-primary`), never raw palette colors (`bg-blue-500`) or manual `dark:` color overrides.
@@ -221,9 +477,12 @@ We use **[Conventional Commits](https://www.conventionalcommits.org/)**. Every c
 
 ## Checklist for every change
 
-1. Code is placed in the correct feature folder, one unit per folder.
+1. Code is placed in the correct feature folder. A unit with a spec or associated files has its own folder. A file with neither sits directly in its parent folder.
 2. No cross-feature imports; shared code is in `features/common/`.
 3. Files and folders follow the naming conventions.
 4. Every new or changed unit has a sibling `.spec` file covering its behavior.
-5. `pnpm lint`, `pnpm test` and `pnpm build` pass.
+5. `pnpm format` has run (`pnpm format:check` passes), and `pnpm lint`, `pnpm test` and `pnpm build` pass.
 6. Commit messages follow Conventional Commits.
+7. Expected failures throw `AppError` with a catalog code. A component that needs the sentence passes that code and `params` to i18next.
+8. Data access goes through a service port. Hooks own TanStack Query, service methods take an optional `options` last, hooks pass `{ signal }`, and services return models.
+9. Browser storage goes through `KeyValueStorage`; only `LocalStorage` touches `localStorage`.
