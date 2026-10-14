@@ -7,16 +7,14 @@ export type FetchHttpClientOptions = {
   readonly baseUrl: string
   readonly fetch?: typeof fetch
   readonly getAccessToken?: () => string | null
-  readonly refresh?: (signal: AbortSignal) => Promise<unknown>
+  readonly refresh?: () => Promise<unknown>
 }
 
 export class FetchHttpClient implements HttpClient {
   private readonly baseUrl: string
   private readonly fetchFn: typeof fetch
   private readonly getAccessToken: (() => string | null) | undefined
-  private readonly refresh:
-    | ((signal: AbortSignal) => Promise<unknown>)
-    | undefined
+  private readonly refresh: (() => Promise<unknown>) | undefined
 
   constructor(options: FetchHttpClientOptions) {
     this.baseUrl = options.baseUrl

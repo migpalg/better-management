@@ -28,13 +28,13 @@ describe('HttpAuthService', () => {
     expect(session.getRefreshToken()).toBe('refresh')
   })
 
-  it('rejects refresh without calling the client or changing the session', async () => {
+  it('rejects refresh called without options and leaves the client and session alone', async () => {
     const http = createHttp()
     const session = new BrowserSession(new MemoryStorage())
     session.setTokens(tokens)
     const auth = new HttpAuthService(http, session)
 
-    await expect(auth.refresh(options)).rejects.toThrow(
+    await expect(auth.refresh()).rejects.toThrow(
       'TODO: HttpAuthService.refresh is a scaffold and will be implemented later.',
     )
     expect(http.request).not.toHaveBeenCalled()

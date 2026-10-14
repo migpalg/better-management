@@ -4,7 +4,7 @@ export type HttpRequest = {
   readonly method: HttpMethod
   readonly path: string
   readonly body?: unknown
-  readonly signal: AbortSignal
+  readonly signal?: AbortSignal
 }
 
 export interface HttpClient {

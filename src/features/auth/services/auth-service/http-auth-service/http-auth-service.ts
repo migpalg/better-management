@@ -15,7 +15,7 @@ export class HttpAuthService implements AuthService {
     this.session = session
   }
 
-  login(input: LoginInput, options: ServiceOptions): Promise<void> {
+  login(input: LoginInput, options?: ServiceOptions): Promise<void> {
     // TODO: Scaffold only. We'll sign in through the anonymous client and store the tokens later.
     return Promise.reject(
       new Error(
@@ -25,7 +25,7 @@ export class HttpAuthService implements AuthService {
     )
   }
 
-  refresh(options: ServiceOptions): Promise<void> {
+  refresh(options?: ServiceOptions): Promise<void> {
     // TODO: Scaffold only. We'll refresh the session through the anonymous client later. The refresh request uses its own AbortController.
     return Promise.reject(
       new Error(

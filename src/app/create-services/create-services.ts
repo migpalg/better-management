@@ -25,7 +25,7 @@ export function createServices(options: CreateServicesOptions = {}): Services {
     baseUrl,
     fetch: options.fetch,
     getAccessToken: () => session.getAccessToken(),
-    refresh: (signal) => auth.refresh({ signal }),
+    refresh: () => auth.refresh(),
   })
 
   // TODO: Scaffold only. We'll add resource services here and pass them the authenticated client later.

@@ -7,6 +7,6 @@ export type LoginInput = {
 }
 
 export interface AuthService {
-  login(input: LoginInput, options: ServiceOptions): Promise<void>
-  refresh(options: ServiceOptions): Promise<void>
+  login(input: LoginInput, options?: ServiceOptions): Promise<void>
+  refresh(options?: ServiceOptions): Promise<void>
 }

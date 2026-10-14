@@ -309,19 +309,19 @@ The parser's spec covers a valid payload and a payload it must reject. When the 
 
 ### Services
 
-The port is the interface the hook depends on. The HTTP class is the adapter. The last parameter of every service method is `options`. `ServiceOptions` lives in `features/common/service-options.ts`. It exports only that type, so it has no spec and no folder of its own.
+The port is the interface the hook depends on. The HTTP class is the adapter. The last parameter of every service method is an optional `options`. `ServiceOptions` lives in `features/common/service-options.ts`. It exports only that type, so it has no spec and no folder of its own.
 
 ```ts
 export type ServiceOptions = {
-  readonly signal: AbortSignal
+  readonly signal?: AbortSignal
 }
 
 export interface TasksService {
   getTasksByProjectId(
     projectId: string,
-    options: ServiceOptions,
+    options?: ServiceOptions,
   ): Promise<readonly Task[]>
-  createTask(input: CreateTaskInput, options: ServiceOptions): Promise<Task>
+  createTask(input: CreateTaskInput, options?: ServiceOptions): Promise<Task>
 }
 
 export class HttpTasksService implements TasksService {
@@ -333,25 +333,25 @@ export class HttpTasksService implements TasksService {
 
   async getTasksByProjectId(
     projectId: string,
-    options: ServiceOptions,
+    options?: ServiceOptions,
   ): Promise<readonly Task[]> {
     const body = await this.http.request({
       method: 'GET',
       path: `/projects/${projectId}/tasks`,
-      signal: options.signal,
+      signal: options?.signal,
     })
     return parseTaskList(body)
   }
 }
 ```
 
-- `options` is required and has no default. `options.signal` is required. Every call passes an options object. Per-call settings belong on `options`, not as further positional parameters.
-- The method forwards `options.signal` to the client and to any collaborator it calls for the same operation. The refresh request is the exception: `refresh` still takes `options`, and the refresh HTTP call uses its own `AbortController`.
+- `options` is optional and has no default, and `options.signal` is optional too. A caller that can cancel the call, such as a hook, passes `{ signal }`. Per-call settings belong on `options`, not as further positional parameters.
+- The method forwards `options?.signal` to the client and to any collaborator it calls for the same operation. The refresh request is the exception: the HTTP client calls `refresh()` without a signal, and the refresh HTTP call uses its own `AbortController`.
 - Collaborators arrive through the constructor. Assign them in the constructor body. The feature imports a port, never another feature's concrete class. A port used by a second feature moves to `features/common/`.
 - The adapter is the only caller of the parser. `HttpClient.request` returns `Promise<unknown>`.
 - Expected failures throw `AppError` (see [App errors](#app-errors)). The model parser throws `common.invalidResponse`. A service throws a feature code for a business rule. An aborted request stays an abort error.
 - A feature exports the class, not a singleton. Nothing in this graph runs at import time.
-- Test a service by constructing it with a fake collaborator and passing `{ signal }`.
+- Test a service by constructing it with a fake collaborator. Cover a call with `{ signal }` and a call without `options`.
 
 The feature exposes the already-built instance through its own provider and hook (`TasksServiceProvider`, `useTasksService()`). `useTasksService()` throws when the provider is missing. A single global registry cannot be typed in `features/common/` (it would have to import features) and a feature cannot import one from `app/`.
 
@@ -365,7 +365,7 @@ export interface HttpClient {
     method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
     path: string
     body?: unknown
-    signal: AbortSignal
+    signal?: AbortSignal
   }): Promise<unknown>
 }
 ```
@@ -393,7 +393,7 @@ export function createServices(): Services {
   const http = new FetchHttpClient({
     baseUrl,
     getAccessToken: () => session.getAccessToken(),
-    refresh: (signal) => auth.refresh({ signal }),
+    refresh: () => auth.refresh(),
   })
 
   // Resource services are constructed here and added to the return value.
@@ -421,7 +421,7 @@ export function useProjectTasks(projectId: string) {
 }
 ```
 
-The query key names the resource and the parameters that identify the result. A query passes `{ signal }` from `queryFn`. A mutation passes `{ signal }` from the mutation context, then invalidates the related queries. Any other caller creates an `AbortController` and passes `{ signal }`. The service does not invalidate.
+The query key names the resource and the parameters that identify the result. A query passes `{ signal }` from `queryFn`. A mutation passes `{ signal }` from the mutation context, then invalidates the related queries. Any other caller that needs to cancel creates an `AbortController` and passes `{ signal }`. The service does not invalidate.
 
 ## Browser storage
 
@@ -484,5 +484,5 @@ We use **[Conventional Commits](https://www.conventionalcommits.org/)**. Every c
 5. `pnpm format` has run (`pnpm format:check` passes), and `pnpm lint`, `pnpm test` and `pnpm build` pass.
 6. Commit messages follow Conventional Commits.
 7. Expected failures throw `AppError` with a catalog code. A component that needs the sentence passes that code and `params` to i18next.
-8. Data access goes through a service port. Hooks own TanStack Query, every service call passes `options` with a required `signal`, and services return models.
+8. Data access goes through a service port. Hooks own TanStack Query, service methods take an optional `options` last, hooks pass `{ signal }`, and services return models.
 9. Browser storage goes through `KeyValueStorage`; only `LocalStorage` touches `localStorage`.

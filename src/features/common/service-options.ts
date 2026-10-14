@@ -1,3 +1,3 @@
 export type ServiceOptions = {
-  readonly signal: AbortSignal
+  readonly signal?: AbortSignal
 }
