@@ -1,4 +1,4 @@
-import { LocalStorage } from '@/features/common/key-value-storage/local-storage.ts'
+import { LocalStorage } from '@/features/common/key-value-storage/local-storage/local-storage.ts'
 
 export type Theme = 'light' | 'dark' | 'system'
 

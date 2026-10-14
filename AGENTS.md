@@ -267,24 +267,24 @@ The UI does not fetch. A feature hook owns the TanStack Query call and talks to 
 ```
 src/features/common/service-options.ts
 src/features/common/key-value-storage/key-value-storage.ts
-src/features/common/key-value-storage/local-storage.ts
+src/features/common/key-value-storage/local-storage/local-storage.ts
 src/features/common/http/http-client/http-client.ts
-src/features/common/http/http-client/fetch-http-client.ts
+src/features/common/http/http-client/fetch-http-client/fetch-http-client.ts
 
 src/features/auth/browser-session/browser-session.ts
 src/features/auth/services/auth-service/auth-service.ts
-src/features/auth/services/auth-service/http-auth-service.ts
+src/features/auth/services/auth-service/http-auth-service/http-auth-service.ts
 
 src/features/tasks/models/task/task.ts
 src/features/tasks/services/tasks-service/tasks-service.ts
-src/features/tasks/services/tasks-service/http-tasks-service.ts
+src/features/tasks/services/tasks-service/http-tasks-service/http-tasks-service.ts
 src/features/tasks/services/tasks-service-provider/tasks-service-provider.tsx
 src/features/tasks/hooks/use-project-tasks/use-project-tasks.ts
 
 src/app/create-services/create-services.ts
 ```
 
-A port and the adapter that implements it share the port's folder. The port file exports a type and has no spec. The adapter keeps its own file name and a sibling spec (`http-client/fetch-http-client.ts`). A second adapter gets its own folder and imports the port. Every parser, provider, hook, and `createServices` has a sibling spec.
+A port and its adapters share the port's folder. The port file exports a type, has no spec, and sits directly in that folder. Every implementation of a port, including the first one and test fakes such as `MemoryStorage`, gets its own subfolder named after it, with its sibling spec (`http-client/fetch-http-client/fetch-http-client.ts`). The implementation imports the port through the `@/` alias. Every parser, provider, hook, and `createServices` has a sibling spec.
 
 ### Models
 
@@ -427,7 +427,7 @@ The query key names the resource and the parameters that identify the result. A 
 
 Values that persist in the browser go through the `KeyValueStorage` port in `features/common/key-value-storage/key-value-storage.ts`.
 
-- Only `LocalStorage` (`features/common/key-value-storage/local-storage.ts`) touches `localStorage`. No other code calls `localStorage` or `sessionStorage` directly.
+- Only `LocalStorage` (`features/common/key-value-storage/local-storage/`) touches `localStorage`. No other code calls `localStorage` or `sessionStorage` directly.
 - Code that persists values depends on `KeyValueStorage` and receives an instance through its constructor (`new BrowserSession(new LocalStorage())`). A module-level util with no constructor, such as `theme.ts`, creates its own `LocalStorage`.
 - A spec for code that receives a `KeyValueStorage` passes a `MemoryStorage` (`features/common/key-value-storage/memory-storage/`). Specs that cannot inject storage, because the code under test creates its own `LocalStorage` (`LocalStorage` itself, `theme.ts` and `useTheme`, `createServices`), use jsdom's `localStorage` and clear it in `beforeEach`.
 - A storage key belongs to the module that owns it: `theme` belongs to `theme.ts`, and the token keys belong to `BrowserSession`. Other code reads or writes that value only through the owning module.

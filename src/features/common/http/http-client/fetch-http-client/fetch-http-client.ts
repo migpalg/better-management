@@ -1,4 +1,7 @@
-import type { HttpClient, HttpRequest } from './http-client.ts'
+import type {
+  HttpClient,
+  HttpRequest,
+} from '@/features/common/http/http-client/http-client.ts'
 
 export type FetchHttpClientOptions = {
   readonly baseUrl: string

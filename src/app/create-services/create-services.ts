@@ -1,9 +1,9 @@
 import { BrowserSession } from '@/features/auth/browser-session/browser-session.ts'
-import { HttpAuthService } from '@/features/auth/services/auth-service/http-auth-service.ts'
+import { HttpAuthService } from '@/features/auth/services/auth-service/http-auth-service/http-auth-service.ts'
 import type { AuthService } from '@/features/auth/services/auth-service/auth-service.ts'
 import type { HttpClient } from '@/features/common/http/http-client/http-client.ts'
-import { FetchHttpClient } from '@/features/common/http/http-client/fetch-http-client.ts'
-import { LocalStorage } from '@/features/common/key-value-storage/local-storage.ts'
+import { FetchHttpClient } from '@/features/common/http/http-client/fetch-http-client/fetch-http-client.ts'
+import { LocalStorage } from '@/features/common/key-value-storage/local-storage/local-storage.ts'
 
 export type Services = {
   readonly session: BrowserSession

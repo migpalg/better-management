@@ -1,7 +1,10 @@
 import type { BrowserSession } from '@/features/auth/browser-session/browser-session.ts'
 import type { HttpClient } from '@/features/common/http/http-client/http-client.ts'
 import type { ServiceOptions } from '@/features/common/service-options.ts'
-import type { AuthService, LoginInput } from './auth-service.ts'
+import type {
+  AuthService,
+  LoginInput,
+} from '@/features/auth/services/auth-service/auth-service.ts'
 
 export class HttpAuthService implements AuthService {
   private readonly http: HttpClient

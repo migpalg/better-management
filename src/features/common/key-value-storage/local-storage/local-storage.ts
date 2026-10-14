@@ -1,4 +1,4 @@
-import type { KeyValueStorage } from './key-value-storage.ts'
+import type { KeyValueStorage } from '@/features/common/key-value-storage/key-value-storage.ts'
 
 export class LocalStorage implements KeyValueStorage {
   get(key: string): string | null {
