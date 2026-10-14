@@ -1,5 +1,5 @@
 import { RouterProvider } from 'react-router/dom'
-import { router } from './routes/routes.tsx'
+import { router } from './routes.tsx'
 import './styles/globals.css'
 
 export function App() {

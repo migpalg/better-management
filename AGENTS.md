@@ -34,7 +34,8 @@ src/
 ├── app/
 │   ├── styles/
 │   │   └── globals.css      # global styles, CSS reset, design tokens
-│   └── app.tsx              # root component: providers, router, global layout
+│   ├── app.tsx              # root component: providers, router, global layout
+│   └── routes.tsx           # `routes` array + `router` instance (see Routing)
 └── features/
     ├── common/              # code shared by two or more features
     │   ├── utils/
@@ -111,7 +112,7 @@ Rules:
 
 **Every testable piece of code must be tested.** A change that adds or modifies a component, hook, util, screen or layout without a corresponding test is incomplete.
 
-- Each source file has a sibling `.spec` file (see above). The only exemptions are files with no runtime behavior: type-only files (`*.types.ts`), `main.tsx`, and plain CSS.
+- Each source file has a sibling `.spec` file (see above). The only exemptions are files with no runtime behavior: type-only files (`*.types.ts`), `main.tsx`, route config (`src/app/routes.tsx`), and plain CSS.
 - Test **behavior, not implementation**: query by role, label or text (`getByRole`, `getByLabelText`) as a user would; avoid `getByTestId` unless there is no accessible alternative; never assert on internal state or private functions.
 - Use `@testing-library/user-event` for interactions instead of `fireEvent`.
 - Test hooks with `renderHook` from `@testing-library/react`.
@@ -133,29 +134,40 @@ Rules:
 - **Keys:** use stable, unique ids as list keys, never array indexes for dynamic lists.
 - **Props:** type every component's props explicitly; prefer composition (`children`) over deep prop drilling; use context for truly cross-cutting state, not as a general store.
 - **Accessibility:** use semantic HTML (`button`, `nav`, `main`, `label`), give every interactive element an accessible name, and make everything keyboard-operable. Accessible markup also makes components testable with Testing Library.
-- **Side-effect-free modules:** no logic runs at import time. The only exception is the router instance in `src/app/routes/routes.tsx` (see [Routing](#routing)).
+- **Side-effect-free modules:** no logic runs at import time. The only exception is the router instance in `src/app/routes.tsx` (see [Routing](#routing)).
 
 ## Routing
 
 We use **React Router in data mode** (`createBrowserRouter` + `RouterProvider`).
 
-- All routes are defined in `src/app/routes/routes.tsx`, which exports both the `routes` array and the `router` instance created from it:
+- All routes are defined in `src/app/routes.tsx`, which exports both the typed `routes` array and the `router` instance created from it:
 
   ```tsx
+  import { createBrowserRouter, type RouteObject } from 'react-router'
+  import { AppLayout } from '@/features/common/layout/app-layout/app-layout.tsx'
+  import { HomeScreen } from '@/features/home/screens/home-screen/home-screen.tsx'
+
   export const routes: RouteObject[] = [
     {
       path: '/',
-      Component: HomeScreen,
+      Component: AppLayout,
+      children: [
+        {
+          index: true,
+          Component: HomeScreen,
+        },
+      ],
     },
   ]
 
   export const router = createBrowserRouter(routes)
   ```
 
-- Use the route's **`Component`** property (not `element`) to render screens, layouts and error boundaries (`Component`, `ErrorBoundary`).
-- Route components are **screens** from `features/<name>/screens/` (or layouts from `layouts/`); keep routing config out of features.
+- **Always render route UI with the capitalized `Component` property**, passing the component reference itself (`Component: HomeScreen`). Never use `element` (`element: <HomeScreen />`) or a lowercase `component` key. The same applies to error boundaries: use `ErrorBoundary`, never `errorElement`.
+- **Nest routes under layouts:** a layout route sets `Component` to a layout (which renders `<Outlet />`) and declares its pages in `children`. The default page of a layout is an `index: true` child; other children use relative paths (`path: 'invoices'`, no leading `/`).
+- Route components are **screens** from `features/<name>/screens/` or layouts from `features/common/layout/` / `features/<name>/layouts/`; keep routing config out of features.
 - `app.tsx` renders the exported router with `RouterProvider` from `react-router/dom`.
-- Test routes with `createMemoryRouter(routes, { initialEntries: [path] })`, never with the exported browser `router`.
+- Routes are **not tested**: do not add a `routes.spec.tsx`. Test the screens and layouts they render instead.
 
 ## TypeScript
 
