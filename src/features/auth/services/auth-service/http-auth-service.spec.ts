@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { BrowserSession } from '@/features/auth/browser-session/browser-session.ts'
 import type { HttpClient } from '@/features/common/http/http-client/http-client.ts'
-import type { Storage } from '@/features/common/storage/storage.ts'
+import { MemoryStorage } from '@/features/common/key-value-storage/memory-storage/memory-storage.ts'
 import { HttpAuthService } from './http-auth-service.ts'
 
 const options = { signal: new AbortController().signal }
@@ -11,24 +11,10 @@ function createHttp(): HttpClient {
   return { request: vi.fn() }
 }
 
-function createMemoryStorage(): Storage {
-  const values = new Map<string, string>()
-
-  return {
-    get: (key) => values.get(key) ?? null,
-    set: (key, value) => {
-      values.set(key, value)
-    },
-    remove: (key) => {
-      values.delete(key)
-    },
-  }
-}
-
 describe('HttpAuthService', () => {
   it('rejects login without calling the client or changing the session', async () => {
     const http = createHttp()
-    const session = new BrowserSession(createMemoryStorage())
+    const session = new BrowserSession(new MemoryStorage())
     session.setTokens(tokens)
     const auth = new HttpAuthService(http, session)
 
@@ -44,7 +30,7 @@ describe('HttpAuthService', () => {
 
   it('rejects refresh without calling the client or changing the session', async () => {
     const http = createHttp()
-    const session = new BrowserSession(createMemoryStorage())
+    const session = new BrowserSession(new MemoryStorage())
     session.setTokens(tokens)
     const auth = new HttpAuthService(http, session)
 

@@ -1,4 +1,4 @@
-import type { Storage } from '@/features/common/storage/storage.ts'
+import type { KeyValueStorage } from '@/features/common/key-value-storage/key-value-storage.ts'
 
 const ACCESS_TOKEN_KEY = 'access-token'
 const REFRESH_TOKEN_KEY = 'refresh-token'
@@ -9,9 +9,9 @@ export type SessionTokens = {
 }
 
 export class BrowserSession {
-  private readonly storage: Storage
+  private readonly storage: KeyValueStorage
 
-  constructor(storage: Storage) {
+  constructor(storage: KeyValueStorage) {
     this.storage = storage
   }
 

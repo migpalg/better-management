@@ -1,33 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import type { Storage } from '@/features/common/storage/storage.ts'
+import { MemoryStorage } from '@/features/common/key-value-storage/memory-storage/memory-storage.ts'
 import { BrowserSession } from './browser-session.ts'
 
 const tokens = { accessToken: 'access', refreshToken: 'refresh' }
 
-function createMemoryStorage(): Storage {
-  const values = new Map<string, string>()
-
-  return {
-    get: (key) => values.get(key) ?? null,
-    set: (key, value) => {
-      values.set(key, value)
-    },
-    remove: (key) => {
-      values.delete(key)
-    },
-  }
-}
-
 describe('BrowserSession', () => {
   it('returns null when no tokens are stored', () => {
-    const session = new BrowserSession(createMemoryStorage())
+    const session = new BrowserSession(new MemoryStorage())
 
     expect(session.getAccessToken()).toBeNull()
     expect(session.getRefreshToken()).toBeNull()
   })
 
   it('stores and clears both tokens', () => {
-    const session = new BrowserSession(createMemoryStorage())
+    const session = new BrowserSession(new MemoryStorage())
 
     session.setTokens(tokens)
 

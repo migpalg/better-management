@@ -266,8 +266,8 @@ The UI does not fetch. A feature hook owns the TanStack Query call and talks to 
 
 ```
 src/features/common/service-options.ts
-src/features/common/storage/storage.ts
-src/features/common/storage/local-storage.ts
+src/features/common/key-value-storage/key-value-storage.ts
+src/features/common/key-value-storage/local-storage.ts
 src/features/common/http/http-client/http-client.ts
 src/features/common/http/http-client/fetch-http-client.ts
 
@@ -379,7 +379,7 @@ The request type has no headers field. Paths are relative (`/projects/${projectI
 
 Refresh is single-flight inside `HttpAuthService`, so parallel `401`s share one refresh call. That refresh uses its own `AbortController`. Cancelling one query does not cancel a refresh another query is waiting on. The retried request still uses the caller's signal.
 
-`BrowserSession` receives a `Storage` and reads and writes tokens through it. `LocalStorage` is the adapter that touches `localStorage`. `HttpAuthService` takes a `BrowserSession` and writes tokens into it after login and refresh. Resource services receive the authenticated client and do not receive the session.
+`BrowserSession` receives a `KeyValueStorage` and reads and writes tokens through it. `LocalStorage` is the adapter that touches `localStorage`. `HttpAuthService` takes a `BrowserSession` and writes tokens into it after login and refresh. Resource services receive the authenticated client and do not receive the session.
 
 A non-HTTP transport follows the same split. The composition root passes the session, and that transport reads `getAccessToken()` when it opens the connection. The feature service receives the transport already configured.
 
@@ -422,6 +422,15 @@ export function useProjectTasks(projectId: string) {
 ```
 
 The query key names the resource and the parameters that identify the result. A query passes `{ signal }` from `queryFn`. A mutation passes `{ signal }` from the mutation context, then invalidates the related queries. Any other caller creates an `AbortController` and passes `{ signal }`. The service does not invalidate.
+
+## Browser storage
+
+Values that persist in the browser go through the `KeyValueStorage` port in `features/common/key-value-storage/key-value-storage.ts`.
+
+- Only `LocalStorage` (`features/common/key-value-storage/local-storage.ts`) touches `localStorage`. No other code calls `localStorage` or `sessionStorage` directly.
+- Code that persists values depends on `KeyValueStorage` and receives an instance through its constructor (`new BrowserSession(new LocalStorage())`). A module-level util with no constructor, such as `theme.ts`, creates its own `LocalStorage`.
+- A spec for code that receives a `KeyValueStorage` passes a `MemoryStorage` (`features/common/key-value-storage/memory-storage/`). Specs that cannot inject storage, because the code under test creates its own `LocalStorage` (`LocalStorage` itself, `theme.ts` and `useTheme`, `createServices`), use jsdom's `localStorage` and clear it in `beforeEach`.
+- A storage key belongs to the module that owns it: `theme` belongs to `theme.ts`, and the token keys belong to `BrowserSession`. Other code reads or writes that value only through the owning module.
 
 ## Styling
 
@@ -476,3 +485,4 @@ We use **[Conventional Commits](https://www.conventionalcommits.org/)**. Every c
 6. Commit messages follow Conventional Commits.
 7. Expected failures throw `AppError` with a catalog code. A component that needs the sentence passes that code and `params` to i18next.
 8. Data access goes through a service port. Hooks own TanStack Query, every service call passes `options` with a required `signal`, and services return models.
+9. Browser storage goes through `KeyValueStorage`; only `LocalStorage` touches `localStorage`.

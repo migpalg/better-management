@@ -1,6 +1,6 @@
-import type { Storage } from './storage.ts'
+import type { KeyValueStorage } from './key-value-storage.ts'
 
-export class LocalStorage implements Storage {
+export class LocalStorage implements KeyValueStorage {
   get(key: string): string | null {
     try {
       return localStorage.getItem(key)

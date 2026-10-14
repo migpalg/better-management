@@ -3,7 +3,7 @@ import { HttpAuthService } from '@/features/auth/services/auth-service/http-auth
 import type { AuthService } from '@/features/auth/services/auth-service/auth-service.ts'
 import type { HttpClient } from '@/features/common/http/http-client/http-client.ts'
 import { FetchHttpClient } from '@/features/common/http/http-client/fetch-http-client.ts'
-import { LocalStorage } from '@/features/common/storage/local-storage.ts'
+import { LocalStorage } from '@/features/common/key-value-storage/local-storage.ts'
 
 export type Services = {
   readonly session: BrowserSession
