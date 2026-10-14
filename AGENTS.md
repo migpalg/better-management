@@ -176,6 +176,84 @@ We use **React Router in data mode** (`createBrowserRouter` + `RouterProvider`).
 - Use `import type` for type-only imports (required by `verbatimModuleSyntax`).
 - Do not use TypeScript-only runtime syntax such as `enum` or parameter properties (`erasableSyntaxOnly` is on); use union types or `as const` objects instead.
 
+## App errors
+
+An expected failure is an `AppError`. The error exposes a `code`, and that code is the i18next translation key. Callers react to `code`. The component that presents the failure passes the key and `params` to i18next. `error.message` and text supplied by a remote system are not user-facing copy.
+
+The implementation lives in `features/common/errors/app-error/`:
+
+```
+features/common/errors/
+└── app-error/
+    ├── app-error.ts
+    └── app-error.spec.ts
+```
+
+`app-error.ts` exports `errorCodes`, the `ErrorCode` type, `AppError`, and `isAppError`.
+
+### Creating an error
+
+- Throw `AppError` for every expected failure (authentication, permissions, validation, not found, network, unavailable, invalid data, and feature-specific business rules). Do not throw a bare `Error`, a string, or a custom error class for these cases.
+- `error.message` is the code. Do not put a sentence in it, and do not call i18next at the throw site.
+- Set `cause` when wrapping an underlying failure.
+- A cancellation stays a cancellation. Do not wrap an abort error in `AppError`.
+- Add a code to `errorCodes` only when more than one feature can throw or react to it. A feature-only code lives in that feature (`taskErrorCodes.duplicateTitle` is `'tasks.duplicateTitle'`). Reuse a common code when the meaning is the same.
+- A small factory may set a fixed code (`authenticationError()`, `notEnoughPermissionsError()`). Callers still branch on `code`, not on the factory or on `instanceof` subclasses.
+
+```ts
+export const errorCodes = {
+  unauthenticated: 'auth.unauthenticated',
+  forbidden: 'auth.forbidden',
+  notFound: 'common.notFound',
+  validation: 'common.validation',
+  network: 'common.network',
+  unavailable: 'common.unavailable',
+  invalidResponse: 'common.invalidResponse',
+  unknown: 'common.unknown',
+} as const
+
+export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes]
+
+export class AppError extends Error {
+  readonly code: string
+  readonly params: Readonly<Record<string, string | number>>
+
+  constructor(
+    code: string,
+    params: Readonly<Record<string, string | number>> = {},
+    options?: { cause?: unknown },
+  ) {
+    super(code)
+    this.name = 'AppError'
+    this.code = code
+    this.params = params
+    this.cause = options?.cause
+  }
+}
+```
+
+Cross-cutting codes:
+
+| Code | Use when |
+| --- | --- |
+| `auth.unauthenticated` | The caller has no valid session. |
+| `auth.forbidden` | The caller is authenticated and is not allowed to do this. |
+| `common.notFound` | The target does not exist. |
+| `common.validation` | The input is unacceptable. |
+| `common.network` | The operation could not reach its dependency. |
+| `common.unavailable` | The dependency cannot complete the operation right now. |
+| `common.invalidResponse` | Data came back in an unexpected shape. |
+| `common.unknown` | The failure has no matching code. |
+
+`params` carries interpolation values only (`{ name: taskTitle }`). It does not carry sentences. The keys match the placeholders in the i18next message, for example `Task {{name}} does not exist.`
+
+### Handling an error
+
+- Narrow with `isAppError` before reading `code`.
+- Decide what to do from `code`. Do not compare `error.message` to a sentence.
+- The component that needs the sentence passes `code` to i18next as the translation key and passes `params` as the interpolation values. That component chooses how the `t` call is written. Do not add a helper that translates an `AppError`.
+- Each code has one i18next message per supported locale. Messages for a shared code live with the common resources. Messages for a feature-only code live with that feature. Adding a code means adding that message, placeholders included, to every locale in the same change. A failure with no matching code uses the `common.unknown` key.
+
 ## Styling
 
 - Style with **Tailwind utility classes**. Use semantic theme tokens (`bg-background`, `text-muted-foreground`, `bg-primary`), never raw palette colors (`bg-blue-500`) or manual `dark:` color overrides.
@@ -227,3 +305,4 @@ We use **[Conventional Commits](https://www.conventionalcommits.org/)**. Every c
 4. Every new or changed unit has a sibling `.spec` file covering its behavior.
 5. `pnpm lint`, `pnpm test` and `pnpm build` pass.
 6. Commit messages follow Conventional Commits.
+7. Expected failures throw `AppError` with a catalog code. A component that needs the sentence passes that code and `params` to i18next.
