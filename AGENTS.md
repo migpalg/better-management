@@ -201,6 +201,24 @@ We use **React Router in data mode** (`createBrowserRouter` + `RouterProvider`).
 
 - Use the `@/` alias (maps to `src/`) for imports across folders, e.g. `@/features/common/components/ui/button`. Use relative imports only within the same unit folder.
 
+## Commits
+
+We use **[Conventional Commits](https://www.conventionalcommits.org/)**. Every commit message must follow this format:
+
+```
+<type>(<optional scope>): <description>
+
+<optional body>
+
+<optional footer(s)>
+```
+
+- **Types:** `feat` (new feature), `fix` (bug fix), `refactor` (no behavior change), `test` (tests only), `docs` (documentation, including `AGENTS.md`), `style` (formatting only), `perf`, `build` (build system, dependencies), `ci`, `chore` (anything else, e.g. tooling config).
+- **Scope** is optional and names the area touched, usually the feature folder (`feat(invoices): …`, `fix(common): …`).
+- **Description:** imperative mood, lowercase, no trailing period, at most ~72 characters (`feat: add invoice list screen`, not `Added invoice list screen.`).
+- **Breaking changes:** add `!` after the type/scope (`feat!: …`) and a `BREAKING CHANGE:` footer describing the change.
+- Keep one logical change per commit; do not mix unrelated changes under a single type.
+
 ## Checklist for every change
 
 1. Code is placed in the correct feature folder, one unit per folder.
@@ -208,3 +226,4 @@ We use **React Router in data mode** (`createBrowserRouter` + `RouterProvider`).
 3. Files and folders follow the naming conventions.
 4. Every new or changed unit has a sibling `.spec` file covering its behavior.
 5. `pnpm lint`, `pnpm test` and `pnpm build` pass.
+6. Commit messages follow Conventional Commits.
