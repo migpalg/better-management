@@ -35,7 +35,7 @@ export function createServices(options: CreateServicesOptions = {}): Services {
 function readBaseUrl(baseUrl: string | undefined): string {
   if (baseUrl !== undefined && baseUrl.length > 0) return baseUrl
 
-  const configured = import.meta.env.VITE_API_URL
+  const configured = import.meta.env.VITE_API_URL ?? ''
   if (configured.length > 0) return configured
 
   throw new Error('VITE_API_URL is not set.')

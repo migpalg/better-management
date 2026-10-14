@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createServices } from './create-services.ts'
 
 const signal = new AbortController().signal
@@ -6,6 +6,10 @@ const signal = new AbortController().signal
 describe('createServices', () => {
   beforeEach(() => {
     localStorage.clear()
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   it('wires a session and clients without calling fetch', async () => {
@@ -37,8 +41,14 @@ describe('createServices', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('throws when the base URL is missing', () => {
+  it('throws when the base URL is empty', () => {
     vi.stubEnv('VITE_API_URL', '')
+
+    expect(() => createServices()).toThrow('VITE_API_URL is not set.')
+  })
+
+  it('throws when the base URL is unset', () => {
+    vi.stubEnv('VITE_API_URL', undefined)
 
     expect(() => createServices()).toThrow('VITE_API_URL is not set.')
   })
