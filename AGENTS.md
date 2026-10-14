@@ -6,7 +6,7 @@ Guidance for AI coding agents (and humans) working in this repository. These rul
 
 - **React 19** + **TypeScript** (strict bundler mode, `verbatimModuleSyntax`)
 - **Vite** for dev server and build
-- **oxlint** for linting
+- **oxlint** for linting, **oxfmt** for formatting (config in `.oxfmtrc.json`)
 - **pnpm** as package manager — never use `npm` or `yarn`
 - **Vitest** + **React Testing Library** (`@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`) for tests
 - **Tailwind CSS v4** + **shadcn/ui** on **Base UI** primitives (`@base-ui/react`), icons from `lucide-react`
@@ -18,11 +18,13 @@ pnpm install      # install dependencies
 pnpm dev          # start dev server
 pnpm build        # type-check (tsc -b) and build
 pnpm lint         # run oxlint
+pnpm format       # format the project with oxfmt
+pnpm format:check # check formatting without writing
 pnpm test         # run the test suite once (vitest)
 pnpm test:watch   # run tests in watch mode
 ```
 
-Before considering any task done, run `pnpm lint`, `pnpm test` and `pnpm build`. All three must pass.
+Before considering any task done, run `pnpm format`, then `pnpm lint`, `pnpm test` and `pnpm build`. All three must pass.
 
 ## Folder structure
 
@@ -463,7 +465,7 @@ We use **[Conventional Commits](https://www.conventionalcommits.org/)**. Every c
 2. No cross-feature imports; shared code is in `features/common/`.
 3. Files and folders follow the naming conventions.
 4. Every new or changed unit has a sibling `.spec` file covering its behavior.
-5. `pnpm lint`, `pnpm test` and `pnpm build` pass.
+5. `pnpm format` has run (`pnpm format:check` passes), and `pnpm lint`, `pnpm test` and `pnpm build` pass.
 6. Commit messages follow Conventional Commits.
 7. Expected failures throw `AppError` with a catalog code. A component that needs the sentence passes that code and `params` to i18next.
 8. Data access goes through a service port. Hooks own TanStack Query, every service call passes `options` with a required `signal`, and services return models.
